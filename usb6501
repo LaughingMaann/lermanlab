@@ -1,0 +1,131 @@
+# -*- coding: utf-8 -*-
+import nidaqmx
+import numpy as np
+from nidaqmx.constants import FuncGenType
+from nidaqmx.constants import AcquisitionType
+from nidaqmx.constants import Edge
+from nidaqmx import stream_writers
+
+import serial, times
+
+ 
+#1ms is 1kHz modulation which was the new design goal for this patch
+per=int(input("Enter pulse width [1-1000 ms]: "))
+while per<1 or per>1000:
+    print ("ValueError: pulse width not within valid range 1-1000 ms")
+    per=input("Enter a pulse width 1-1000ms to modulate with: ")
+
+#beacons a-c cannot handle more than 1.95 but cant multiply by non int
+volt=int(input("Enter Analog Volage Amplitude from [0.1-2 Vpk-pk]: "))
+while volt<0.1 or volt>5:
+    print ("ValueError: analog output voltage not within valid range 0.1-2 Vpk-pk")
+    volt=input("Enter Analog Volage Amplitude from [0.1-2 Vpk-pk]: ")
+
+#still need to add the custom modulation sequence
+seq=input("Enter Modulation Pattern [A-D or Custom]: ")
+
+elapse = input("Enter modulation duration as 'hh:mm:ss' : ")  
+#hh= elapse[:-8]*3600
+#mm= elapse[-8:-6]*60
+hh = elapse[-8:-6]
+#ss= elapse[-6:-4]
+mm = elapse[-5:-3]
+ss = elapse[-2:]
+elapse1=int((hh+mm+ss))
+ms= elapse[-4:]
+print ("Modulation duration is initialized")
+
+
+
+with nidaqmx.Task() as task:
+    while seq=="A" or seq=="B" or seq=="C" or seq=="D" or seq=="Custom":
+        print( "foobar")
+        if seq=="A":
+            one=int(per*.5*2)
+            zer=int(per*.5*2)
+            
+            test_Task = nidaqmx.Task()
+            #test_Task.ao_channels.add_ao_voltage_chan('myDAQ1/ao0')
+            test_Task.do_channels.add_do_chan('Dev2/port2/line3')
+            print("pls")
+            #cfg_samp_clk_timing(rate, source=u’‘, active_edge=<Edge.RISING: 10280>, sample_mode=<AcquisitionType.FINITE: 10178>, samps_per_chan=1000)
+            #test_Task.timing.cfg_samp_clk_timing(rate= 80, sample_mode= AcquisitionType.FINITE, samps_per_chan=1000)
+
+            test_Writer = nidaqmx.stream_writers.DigitalSingleChannelWriter(test_Task.out_stream, auto_start=True)
+            samples = np.append(volt*np.ones(one,dtype=np.uint16), np.zeros(zer,dtype=np.uint16))
+            #writes one or more 16-int unsigned integer samples to a single digital output task
+            test_Writer.write_many_sample_port_uint16(samples)
+            
+            #time.sleep(elapse1)
+            #print(times.asctimes())
+            
+            #test_Task.wait_until_done() por que?? is this necessary
+            test_Task.stop()
+            test_Task.close()
+        
+        elif seq=="B":
+            one=int(per*.25*2)
+            zer=int(per*.75*2)
+            
+            test_Task = nidaqmx.Task()
+            test_Task.ao_channels.add_ao_voltage_chan('myDAQ1/ao0')
+            #cfg_samp_clk_timing(rate, source=u’‘, active_edge=<Edge.RISING: 10280>, sample_mode=<AcquisitionType.FINITE: 10178>, samps_per_chan=1000)
+            test_Task.timing.cfg_samp_clk_timing(rate= 2000, active_edge=Edge.RISING,sample_mode= AcquisitionType.CONTINUOUS, samps_per_chan=40)
+            test_Writer = nidaqmx.stream_writers.AnalogSingleChannelWriter(test_Task.out_stream, auto_start=True)
+            samples = np.append(volt*np.ones(one), np.zeros(zer))
+            test_Writer.write_many_sample(samples)
+            
+            times.sleep(elapse1)
+            print(times.asctimes())
+            
+          #  test_Task.wait_until_done()
+            test_Task.stop()
+            test_Task.close()
+            break
+
+        elif seq=="C":
+            one=int(per*.2*2)
+            zer=int(per*.8*2)
+            
+            test_Task = nidaqmx.Task()
+            test_Task.ao_channels.add_ao_voltage_chan('myDAQ1/ao0')
+            #cfg_samp_clk_timing(rate, source=u’‘, active_edge=<Edge.RISING: 10280>, sample_mode=<AcquisitionType.FINITE: 10178>, samps_per_chan=1000)
+            test_Task.timing.cfg_samp_clk_timing(rate= 2000, active_edge=Edge.RISING,sample_mode= AcquisitionType.CONTINUOUS, samps_per_chan=40)
+            test_Writer = nidaqmx.stream_writers.AnalogSingleChannelWriter(test_Task.out_stream, auto_start=True)
+            samples = np.append(volt*np.ones(one), np.zeros(zer))
+            test_Writer.write_many_sample(samples)
+            
+            times.sleep(elapse1)
+            print(times.asctimes())
+            
+          #  test_Task.wait_until_done()
+            test_Task.stop()
+            test_Task.close()
+            break
+                               
+        elif seq=="D":
+            one=int(per*.1*2)
+            zer=int(per*.9*2)
+            
+            test_Task = nidaqmx.Task()
+            test_Task.ao_channels.add_ao_voltage_chan('myDAQ1/ao0')
+            #cfg_samp_clk_timing(rate, source=u’‘, active_edge=<Edge.RISING: 10280>, sample_mode=<AcquisitionType.FINITE: 10178>, samps_per_chan=1000)
+            test_Task.timing.cfg_samp_clk_timing(rate= 2000, active_edge=Edge.RISING,sample_mode= AcquisitionType.CONTINUOUS, samps_per_chan=40)
+            test_Writer = nidaqmx.stream_writers.AnalogSingleChannelWriter(test_Task.out_stream, auto_start=True)        
+            samples = np.append(volt*np.ones(one), np.zeros(zer))        
+            test_Writer.write_many_sample(samples)
+            
+            times.sleep(elapse1)
+            print(times.asctimes())
+            
+          #  test_Task.wait_until_done()
+            test_Task.stop()
+            test_Task.close()
+            break
+        
+        else:
+            print ("ValueError: Pattern not acceptable str A, B, C, D, or Custom")
+            seq=raw_input("Enter Modulation Pattern [A-D or Custom]: ")  
+             
+    test_Task.stop()
+    test_Task.close()                            
